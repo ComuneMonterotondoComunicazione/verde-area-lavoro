@@ -259,6 +259,13 @@
   .accesso .barra-car { height: 6px; border-radius: 3px; background: var(--crema); overflow: hidden; }
   .accesso .barra-car i { display: block; height: 100%; width: 0; background: var(--foglia); transition: width .3s; }
   .accesso .piccolo { font-size: .82rem; color: var(--muschio); }
+  .azioni-voce { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .azioni-voce button { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 3px 10px; font-size: .82rem; font-weight: 700; color: var(--muschio); }
+  .azioni-voce button:hover { border-color: var(--foglia); color: var(--bosco); }
+  .azioni-voce button.rosso { color: var(--rosso); }
+  .azioni-voce button.rosso:hover { border-color: var(--rosso); }
+  .mod { font-size: .78rem; color: var(--muschio); font-style: italic; margin-top: 4px; }
+  .correzioni { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
   .colonna header svg { width: 18px; height: 18px; flex: none; }
   #chiSono { overflow-wrap: anywhere; }
 </style>
@@ -301,6 +308,8 @@
 <aside class="cassetto" id="cassetto" aria-label="Scheda albero"></aside>
 
 <dialog id="dlgControllo"><form method="dialog" id="formControllo"></form></dialog>
+<dialog id="dlgVoce"><form method="dialog" id="formVoce"></form></dialog>
+<dialog id="dlgDati"><form method="dialog" id="formDati"></form></dialog>
 <dialog id="dlgNuovo"><form method="dialog" id="formNuovo"></form></dialog>
 <dialog id="dlgOrdine"><form method="dialog" id="formOrdine"></form></dialog>
 <div class="toast" id="toast"></div>
@@ -351,7 +360,7 @@ const CLOUD = (() => {
     try {
       while (coda.length) {
         const w = coda[0];
-        const { error } = await sb.from(w.tab).upsert(w.riga);
+        const { error } = w.del ? await sb.from(w.tab).delete().match(w.del) : await sb.from(w.tab).upsert(w.riga);
         if (error) {
           if (/fetch|network|Failed/i.test(error.message || "")) { online = false; break; }
           ultimoErrore = "Modifica non salvata: " + (error.message || error.code); console.error(error);
@@ -491,7 +500,7 @@ const CLOUD = (() => {
   function ascolta() {
     const ch = sb.channel("verde-lavoro");
     ["alberi_mod", "nuovi_alberi", "ordini", "eventi", "impostazioni"].forEach(tab =>
-      ch.on("postgres_changes", { event: "*", schema: "public", table: tab }, p => { if (window.applicaRemoto) window.applicaRemoto(tab, p.new, p.eventType); }));
+      ch.on("postgres_changes", { event: "*", schema: "public", table: tab }, p => { if (window.applicaRemoto) window.applicaRemoto(tab, p.eventType === "DELETE" ? p.old : p.new, p.eventType); }));
     ch.subscribe();
   }
   let avviato = false;
@@ -507,6 +516,7 @@ const CLOUD = (() => {
   return {
     get email() { return email; },
     stato, onCambio(f) { ascoltatori.push(f); },
+    elimina(tab, chiave) { coda.push({ tab, del: chiave }); salvaCoda(); avvisa(); svuota(); },
     scrivi(tab, riga) { coda.push({ tab, riga }); salvaCoda(); avvisa(); svuota(); },
     async nuovaFoto(dataUrl) { const id = "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); await FotoCoda.metti(id, dataUrl); fotoInAttesa++; svuota(); return id; },
     async urlFoto(id) {
@@ -988,7 +998,7 @@ function rStorico() {
       if (m !== mese) { mese = m; html += `</ul><div class="mese-t">${m ? (m.length === 7 ? dataTxt(m) : m) : "Senza data"}</div><ul class="timeline">`; }
       const T = TIPI_EV[e.tipo] || TIPI_EV.nota, a = PER_N.get(e.n);
       html += `<li><span class="ic" style="background:${T.bg};color:${T.col}">${svg(T.ic)}</span><div class="riga"><header><b>${T.nome}</b>${a ? `<button class="albero" data-n="${a.n}">n. ${num(a)} · ${esc(nomeSp(a))}</button>` : ""}<time>${dataTxt(e.data)}</time></header>
-        <p>${esc(e.testo)}${a ? ` · ${esc(luogo(a))}` : ""}</p>${fotoHtml(e.foto)}${e.chi || e.ditta || e.costo ? `<div class="chi">${[e.chi && "Registrato da " + esc(e.chi), e.ditta && "Ditta: " + esc(e.ditta), e.costo && "Costo: € " + esc(e.costo)].filter(Boolean).join(" · ")}</div>` : ""}</div></li>`;
+        <p>${esc(e.testo)}${a ? ` · ${esc(luogo(a))}` : ""}</p>${fotoHtml(e.foto)}${e.chi || e.ditta || e.costo ? `<div class="chi">${[e.chi && "Registrato da " + esc(e.chi), e.ditta && "Ditta: " + esc(e.ditta), e.costo && "Costo: € " + esc(e.costo)].filter(Boolean).join(" · ")}</div>` : ""}${e.base ? "" : azioniVoce(e)}</div></li>`;
     });
     html += `</ul>${ev.length > FS.limite ? `<button class="altri" id="altriS">Mostra altri (${fmt(ev.length - FS.limite)})</button>` : ""}`;
   }
@@ -997,7 +1007,7 @@ function rStorico() {
   $("#fsBase").onchange = e => { FS.base = e.target.checked; rStorico(); };
   $("#fsCerca").oninput = e => { FS.cerca = e.target.value; clearTimeout(rStorico.t); rStorico.t = setTimeout(() => { rStorico(); const i = $("#fsCerca"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
   if ($("#altriS")) $("#altriS").onclick = () => { FS.limite += 300; rStorico(); };
-  collegaVoci(s); caricaFoto(s);
+  collegaVoci(s); caricaFoto(s); collegaAzioniVoce(s);
 }
 
 /* ---------- MAPPA ---------- */
@@ -1072,10 +1082,15 @@ function apriAlbero(n) {
       <div class="sezione-t" style="margin-top:0">Interventi</div>
       ${ordini.length ? ordini.map(o => `<div class="ordine-mini" data-ordine="${o.id}"><b>${esc(CAT[o.cat])}</b><span><span class="pill p-${o.prio}">${o.prio}</span> <span class="pill s-${o.stato}">${STATI[o.stato]}</span></span><small>${esc(o.testo)}${o.data ? " · " + dataTxt(o.data) : ""}${o.ditta ? " · " + esc(o.ditta) : ""}</small></div>`).join("") : `<p style="color:var(--muschio);margin:0 0 8px">Nessun intervento prescritto.</p>`}
       <div class="sezione-t">Storico dell'albero</div>
-      <ul class="timeline">${ev.map(e => { const T = TIPI_EV[e.tipo] || TIPI_EV.nota; return `<li><span class="ic" style="background:${T.bg};color:${T.col}">${svg(T.ic)}</span><div class="riga"><header><b>${T.nome}</b><time>${dataTxt(e.data)}</time></header><p>${esc(e.testo)}</p>${e.chi || e.ditta || e.costo ? `<div class="chi">${[e.chi && "Da " + esc(e.chi), e.ditta && "Ditta: " + esc(e.ditta), e.costo && "€ " + esc(e.costo)].filter(Boolean).join(" · ")}</div>` : ""}${fotoHtml(e.foto)}${e.base ? `<div class="chi">Dal file del censimento</div>` : ""}</div></li>`; }).join("")}</ul>
+      <ul class="timeline">${ev.map(e => { const T = TIPI_EV[e.tipo] || TIPI_EV.nota; return `<li><span class="ic" style="background:${T.bg};color:${T.col}">${svg(T.ic)}</span><div class="riga"><header><b>${T.nome}</b><time>${dataTxt(e.data)}</time></header><p>${esc(e.testo)}</p>${e.chi || e.ditta || e.costo ? `<div class="chi">${[e.chi && "Da " + esc(e.chi), e.ditta && "Ditta: " + esc(e.ditta), e.costo && "€ " + esc(e.costo)].filter(Boolean).join(" · ")}</div>` : ""}${fotoHtml(e.foto)}${e.base ? `<div class="chi">Dal file del censimento</div>` : azioniVoce(e)}</div></li>`; }).join("")}</ul>
       <div class="sezione-t">Posizione</div>
       <p style="color:var(--muschio);margin:0 0 8px;font-size:.92rem">${DB.alberi[n] && DB.alberi[n].pos ? "Posizione corretta sul campo." : a.nuovo ? "Posizione rilevata col GPS al momento del censimento." : "Posizione del censimento."} Se il punto sulla mappa è sbagliato, mettiti accanto al tronco e aggiornala.</p>
       <button class="btn" id="cPos">Aggiorna posizione con il GPS</button>
+      <div class="sezione-t">Correzioni</div>
+      <p style="color:var(--muschio);margin:0 0 4px;font-size:.92rem">Per correggere un errore nei dati attuali di questo albero. Ogni correzione resta nello storico.</p>
+      <div class="correzioni"><button class="btn" id="cCorreggi">Correggi dati</button>
+        ${a.nuovo ? `<button class="btn" id="cModNuovo">Modifica albero nuovo</button><button class="btn rosso" id="cDelNuovo">Elimina albero</button>`
+          : (DB.alberi[n] ? `<button class="btn" id="cRipristina">Torna ai dati del censimento</button>` : "")}</div>
     </div>`;
   $("#cassetto").classList.add("aperto"); $("#velo").classList.add("aperto");
   $("#chiudiCass").onclick = chiudiAlbero;
@@ -1084,7 +1099,11 @@ function apriAlbero(n) {
   $("#cNota").onclick = () => { const t = prompt("Nota per l'albero n. " + n + ":"); if (t) { registra({ tipo: "nota", n, data: OGGI_S, testo: t }); toast("Nota salvata"); } };
   $("#cMappa").onclick = () => { chiudiAlbero(); vai("mappa", { n }); };
   $("#cassetto").querySelectorAll("[data-ordine]").forEach(b => b.onclick = () => apriOrdine(b.dataset.ordine));
-  caricaFoto($("#cassetto"));
+  caricaFoto($("#cassetto")); collegaAzioniVoce($("#cassetto"));
+  $("#cCorreggi").onclick = () => correggiDati(n);
+  if ($("#cRipristina")) $("#cRipristina").onclick = () => ripristinaAlbero(n);
+  if ($("#cModNuovo")) $("#cModNuovo").onclick = () => modificaNuovo(n);
+  if ($("#cDelNuovo")) $("#cDelNuovo").onclick = () => eliminaNuovo(n);
   $("#cPos").onclick = () => {
     if (!navigator.geolocation) return toast("Posizione non disponibile");
     toast("Rilevo la posizione…");
@@ -1161,10 +1180,17 @@ function apriOrdine(id, nNuovo) {
       <label>Costo (€)<input name="costo" inputmode="decimal" value="${esc(o.costo)}"></label></div>
     <label>Note<textarea name="note">${esc(o.note)}</textarea></label>
     <div class="suggerimento">Quando lo segni come <b>Eseguito</b>, l'intervento entra nello storico dell'albero.${o.cat === "abbattimento" ? " Per un abbattimento l'albero verrà segnato come non più presente." : ""}</div>
-    <div class="piede"><button class="btn" value="albero" formnovalidate>Apri scheda albero</button><span style="flex:1"></span><button class="btn" value="annulla" formnovalidate>Annulla</button><button class="btn pieno" value="ok">Salva</button></div>`;
+    <div class="piede"><button class="btn" value="albero" formnovalidate>Apri scheda albero</button>${o.manuale && !o.nuovo ? `<button class="btn rosso" value="elimina" formnovalidate>Elimina intervento</button>` : (!o.nuovo && DB.ordini[o.id] ? `<button class="btn" value="ripristina" formnovalidate>Ripristina dal censimento</button>` : "")}<span style="flex:1"></span><button class="btn" value="annulla" formnovalidate>Annulla</button><button class="btn pieno" value="ok">Salva</button></div>`;
   const dlg = $("#dlgOrdine");
   dlg.onclose = () => {
     if (dlg.returnValue === "albero") { apriAlbero(o.n); return; }
+    if (dlg.returnValue === "elimina" || dlg.returnValue === "ripristina") {
+      const del = dlg.returnValue === "elimina";
+      if (!confirm(del ? "Eliminare questo intervento? Non si può annullare." : "Annullare tutte le modifiche a questo intervento e tornare a com'era nel censimento?")) return;
+      delete DB.ordini[o.id]; CLOUD.elimina("ordini", { id: o.id });
+      toast(del ? "Intervento eliminato" : "Intervento ripristinato"); aggiorna(); if (albAperto) apriAlbero(albAperto);
+      return;
+    }
     if (dlg.returnValue !== "ok") return;
     const v = Object.fromEntries(new FormData(f));
     if (v.stato === "fatto" && !v.data) v.data = OGGI_S;
@@ -1180,7 +1206,7 @@ function apriOrdine(id, nNuovo) {
         registra({ tipo: "intervento", n: o.n, data: v.data, testo: CAT[v.cat] + ": " + v.testo + (v.note ? ". " + v.note : ""), ditta: v.ditta, costo: v.costo, ordine: o.id });
       } else if (v.stato === "prog" || v.stato === "corso") {
         registra({ tipo: "ordine", n: o.n, data: OGGI_S, testo: `${CAT[v.cat]} ${v.stato === "prog" ? "programmato" + (v.data ? " per il " + dataTxt(v.data) : "") : "avviato"}`, ditta: v.ditta, ordine: o.id });
-      } else { salva(); aggiorna(); }
+      } else { salva(); aggiorna(); if (albAperto) apriAlbero(albAperto); }
     } else { salva(); if (albAperto) apriAlbero(albAperto); aggiorna(); }
     toast("Intervento salvato");
   };
@@ -1245,6 +1271,149 @@ function rImpostazioni() {
 }
 function scarica(blob, nome) { const u = URL.createObjectURL(blob), l = document.createElement("a"); l.href = u; l.download = nome; l.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
 
+/* ---------- Modifica ed eliminazione ---------- */
+const azioniVoce = e => `<div class="azioni-voce"><button data-mod-ev="${esc(e.id)}">Modifica</button><button class="rosso" data-del-ev="${esc(e.id)}">Elimina</button></div>` +
+  (e.modificato ? `<div class="mod">Modificata da ${esc(e.modificato.chi)} il ${dataTxt(e.modificato.il)}</div>` : "");
+function collegaAzioniVoce(el) {
+  el.querySelectorAll("[data-mod-ev]").forEach(b => b.onclick = ev => { ev.stopPropagation(); modificaVoce(b.dataset.modEv); });
+  el.querySelectorAll("[data-del-ev]").forEach(b => b.onclick = ev => { ev.stopPropagation(); eliminaVoce(b.dataset.delEv); });
+}
+const salvaEvento = ev => CLOUD.scrivi("eventi", { id: ev.id, n: ev.n ?? null, tipo: ev.tipo, data: ev.data || null, dati: ev });
+function dopoModifica(msg) { toast(msg); aggiorna(); if (albAperto) apriAlbero(albAperto); }
+function modificaVoce(id) {
+  const ev = DB.eventi.find(e => e.id === id); if (!ev) return;
+  const T = TIPI_EV[ev.tipo] || TIPI_EV.nota, a = PER_N.get(ev.n);
+  const f = $("#formVoce");
+  const data = (ev.data || "").length === 10 ? ev.data : "";
+  f.innerHTML = `<h3>Modifica: ${esc(T.nome.toLowerCase())}</h3><p class="sotto">${a ? `Albero n. ${num(a)} · ${esc(nomeSp(a))}` : ""}${ev.chi ? " · registrata da " + esc(ev.chi) : ""}</p>
+    <label>Data<input type="date" name="data" value="${esc(data)}"></label>
+    <label>Testo<textarea name="testo" required>${esc(ev.testo)}</textarea></label>
+    ${ev.tipo === "intervento" ? `<div class="due"><label>Ditta / squadra<input name="ditta" value="${esc(ev.ditta)}"></label><label>Costo (€)<input name="costo" inputmode="decimal" value="${esc(ev.costo)}"></label></div>` : ""}
+    <div class="suggerimento">La voce resta nello storico con l'indicazione "modificata da ${esc(ioNome())}".</div>
+    <div class="piede"><button class="btn" value="annulla" formnovalidate>Annulla</button><button class="btn pieno" value="ok">Salva modifica</button></div>`;
+  const dlg = $("#dlgVoce");
+  dlg.onclose = () => {
+    if (dlg.returnValue !== "ok") return;
+    const v = Object.fromEntries(new FormData(f));
+    Object.assign(ev, { testo: v.testo, modificato: { chi: ioNome(), il: OGGI_S } }, v.data ? { data: v.data } : {}, ev.tipo === "intervento" ? { ditta: v.ditta, costo: v.costo } : {});
+    salvaEvento(ev); dopoModifica("Voce modificata");
+  };
+  dlg.returnValue = ""; dlg.showModal();
+}
+function eliminaVoce(id) {
+  const ev = DB.eventi.find(e => e.id === id); if (!ev) return;
+  const avviso = ev.tipo === "intervento" ? "\n\nL'intervento resterà segnato come eseguito: se serve, riaprilo dalla lista Interventi." :
+    ev.tipo === "controllo" ? "\n\nLa classe e la data del prossimo controllo restano quelle attuali: se serve, usa \"Correggi dati\" nella scheda." : "";
+  if (!confirm("Eliminare questa voce dallo storico? Non si può annullare." + avviso)) return;
+  DB.eventi = DB.eventi.filter(e => e.id !== id);
+  CLOUD.elimina("eventi", { id });
+  dopoModifica("Voce eliminata");
+}
+function correggiDati(n) {
+  const a = PER_N.get(n), s = stato(a);
+  const f = $("#formDati");
+  f.innerHTML = `<h3>Correggi dati</h3><p class="sotto">Albero n. ${num(a)} · ${esc(nomeSp(a))} · ${esc(luogo(a))}</p>
+    <div class="due"><label>Classe CPC<select name="cpc"><option value="">—</option>${CPC_LISTA.map(k => `<option ${s.cpc === k ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+      <label>Sviluppo<select name="sviluppo"><option value="">—</option>${["Giovane", "Adulta", "Matura", "Senescente", "Secco"].map(k => `<option ${s.sviluppo === k ? "selected" : ""}>${k}</option>`).join("")}</select></label></div>
+    <label>Prossimo controllo<input type="date" name="prossimo" value="${(s.prossimo || "").length === 10 ? esc(s.prossimo) : ""}"></label>
+    ${s.prossimo && s.prossimo.length === 7 ? `<p class="sotto" style="margin:0">Ora è fissato a <b>${dataTxt(s.prossimo)}</b>: lascia vuoto per non cambiarlo.</p>` : ""}
+    <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="abbattuto" style="width:auto" ${s.abbattuto ? "checked" : ""}> L'albero non è più presente</label>
+    ${a.nuovo ? "" : `<div class="sezione-t" style="margin:6px 0 0">Dati della scheda</div>
+    <label>Specie (nome comune)<input name="com" list="dlSpecie3" value="${esc(nomeSp(a))}"><datalist id="dlSpecie3">${[...new Set(SPECIE.map(x => x[0]).filter(Boolean))].sort((p, q) => p.localeCompare(q, "it")).map(x => `<option value="${esc(x)}">`).join("")}</datalist></label>
+    <label>Luogo<input name="areaNome" list="dlAree3" value="${esc(luogo(a))}"><datalist id="dlAree3">${[...new Set(AREE.map(x => x[0]))].sort((p, q) => p.localeCompare(q, "it")).map(x => `<option value="${esc(x)}">`).join("")}</datalist></label>
+    <div class="due"><label>Diametro tronco (cm)<input name="d" type="number" inputmode="numeric" value="${a.d || ""}"></label><label>Diametro chioma (m)<input name="c" type="number" inputmode="numeric" value="${a.c || ""}"></label></div>
+    <label>Classe altezza (m)<select name="h"><option value="">—</option>${["<8", "8-12", "12-18", "18-22", "22-30"].map(k => `<option ${a.h === k ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+    <label>Difetti<textarea name="df">${esc(a.df)}</textarea></label>
+    <label>Note<input name="no" value="${esc(a.no)}"></label>`}
+    <label>Motivo della correzione<input name="motivo" placeholder="Es. classe inserita per errore"></label>
+    <div class="piede"><button class="btn" value="annulla" formnovalidate>Annulla</button><button class="btn pieno" value="ok">Salva correzione</button></div>`;
+  const dlg = $("#dlgDati");
+  dlg.onclose = () => {
+    if (dlg.returnValue !== "ok") return;
+    const v = Object.fromEntries(new FormData(f));
+    const nuovo = { cpc: v.cpc, sviluppo: v.sviluppo, abbattuto: !!v.abbattuto };
+    if (v.prossimo) nuovo.prossimo = v.prossimo;
+    const cambi = [];
+    if (nuovo.cpc !== s.cpc) cambi.push(`classe ${s.cpc || "—"} → ${nuovo.cpc || "—"}`);
+    if (nuovo.sviluppo !== s.sviluppo) cambi.push(`sviluppo ${s.sviluppo || "—"} → ${nuovo.sviluppo || "—"}`);
+    if (v.prossimo && v.prossimo !== s.prossimo) cambi.push(`prossimo controllo ${s.prossimo ? dataTxt(s.prossimo) : "—"} → ${dataTxt(v.prossimo)}`);
+    if (nuovo.abbattuto !== s.abbattuto) cambi.push(nuovo.abbattuto ? "segnato come non più presente" : "di nuovo presente");
+    if (!a.nuovo) {
+      const campi = {};
+      const conf = [["com", "specie", nomeSp(a)], ["areaNome", "luogo", luogo(a)], ["d", "tronco", a.d], ["c", "chioma", a.c], ["h", "altezza", a.h], ["df", "difetti", a.df], ["no", "note", a.no]];
+      for (const [k, etich, prima] of conf) {
+        const val = (k === "d" || k === "c") ? (+v[k] || 0) : (v[k] || "");
+        if (String(val) !== String(prima ?? (k === "d" || k === "c" ? 0 : ""))) { campi[k] = val; cambi.push(`${etich}: ${prima || "—"} → ${val || "—"}`); }
+      }
+      if (Object.keys(campi).length) nuovo.campi = Object.assign({}, (DB.alberi[n] || {}).campi || {}, campi);
+    }
+    if (!cambi.length) { toast("Nessuna modifica"); return; }
+    DB.alberi[n] = Object.assign(DB.alberi[n] || {}, nuovo);
+    applicaCampi(n);
+    scriviAlbero(n);
+    registra({ tipo: "nota", n, data: OGGI_S, testo: "Dati corretti: " + cambi.join("; ") + (v.motivo ? ". Motivo: " + v.motivo : "") });
+    toast("Dati corretti");
+  };
+  dlg.returnValue = ""; dlg.showModal();
+}
+// i dati della scheda corretti sul campo sostituiscono quelli del censimento (l'originale resta in a._orig)
+function applicaCampi(n) {
+  const a = PER_N.get(n); if (!a || a.nuovo) return;
+  if (!a._orig) a._orig = { s: a.s, a: a.a, d: a.d, c: a.c, h: a.h, df: a.df, no: a.no };
+  Object.assign(a, a._orig);
+  const c = (DB.alberi[n] || {}).campi; if (!c) return;
+  if (c.com !== undefined) a.s = indiceSpecie(c.com, "");
+  if (c.areaNome !== undefined) a.a = indiceArea(c.areaNome);
+  for (const k of ["d", "c", "h", "df", "no"]) if (c[k] !== undefined) a[k] = c[k];
+}
+function ripristinaAlbero(n) {
+  if (!confirm("Tornare ai dati del censimento per questo albero?\nClasse, prossimo controllo, sviluppo e posizione tornano quelli originali. Lo storico resta.")) return;
+  delete DB.alberi[n]; applicaCampi(n); CLOUD.elimina("alberi_mod", { n });
+  registra({ tipo: "nota", n, data: OGGI_S, testo: "Ripristinati i dati del censimento" });
+  toast("Dati del censimento ripristinati");
+}
+function modificaNuovo(n) {
+  const r = DB.nuoviAlberi.find(x => x.n === n), a = PER_N.get(n); if (!r || !a) return;
+  const f = $("#formDati");
+  const nomiSp = [...new Set(SPECIE.map(x => x[0]).filter(Boolean))].sort((p, q) => p.localeCompare(q, "it"));
+  const nomiAree = [...new Set(AREE.map(x => x[0]))].sort((p, q) => p.localeCompare(q, "it"));
+  f.innerHTML = `<h3>Modifica albero nuovo</h3><p class="sotto">Scheda n. ${num(a)} · censito il ${dataTxt(r.data || OGGI_S)}</p>
+    <label>Specie (nome comune)<input name="com" list="dlSpecie2" required value="${esc(r.com)}"><datalist id="dlSpecie2">${nomiSp.map(x => `<option value="${esc(x)}">`).join("")}</datalist></label>
+    <label>Luogo<input name="areaNome" list="dlAree2" required value="${esc(r.areaNome)}"><datalist id="dlAree2">${nomiAree.map(x => `<option value="${esc(x)}">`).join("")}</datalist></label>
+    <div class="due"><label>Tipologia<select name="t">${["Stradale", "Parchi", "Verde attrezzato", "Scuola", "Altro"].map(k => `<option ${r.t === k ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+      <label>Classe altezza (m)<select name="h"><option value="">—</option>${["<8", "8-12", "12-18", "18-22", "22-30"].map(k => `<option ${r.h === k ? "selected" : ""}>${k}</option>`).join("")}</select></label></div>
+    <div class="due"><label>Diametro tronco (cm)<input name="d" type="number" inputmode="numeric" value="${r.d || ""}"></label><label>Diametro chioma (m)<input name="c" type="number" inputmode="numeric" value="${r.c || ""}"></label></div>
+    <label>Difetti<textarea name="df">${esc(r.df)}</textarea></label>
+    <label>Note<input name="no" value="${esc(r.no)}"></label>
+    <div class="piede"><button class="btn" value="annulla" formnovalidate>Annulla</button><button class="btn pieno" value="ok">Salva</button></div>`;
+  const dlg = $("#dlgDati");
+  dlg.onclose = () => {
+    if (dlg.returnValue !== "ok") return;
+    const v = Object.fromEntries(new FormData(f));
+    const sp = SPECIE.find(x => x[0].toLowerCase() === v.com.toLowerCase());
+    Object.assign(r, { com: v.com, bot: sp ? sp[1] : "", areaNome: v.areaNome, t: v.t, h: v.h, d: +v.d || 0, c: +v.c || 0, df: v.df, no: v.no });
+    Object.assign(a, r, { s: indiceSpecie(r.com, r.bot), a: indiceArea(r.areaNome) });
+    CLOUD.scrivi("nuovi_alberi", { n, dati: r });
+    registra({ tipo: "nota", n, data: OGGI_S, testo: "Dati dell'albero nuovo modificati" });
+    toast("Albero aggiornato");
+  };
+  dlg.returnValue = ""; dlg.showModal();
+}
+function rimuoviNuovo(n) {
+  DB.nuoviAlberi = DB.nuoviAlberi.filter(x => x.n !== n);
+  const i = ALBERI.findIndex(x => x.n === n && x.nuovo); if (i >= 0) ALBERI.splice(i, 1);
+  PER_N.delete(n); delete DB.alberi[n];
+  DB.eventi = DB.eventi.filter(e => e.n !== n);
+  if (albAperto === n) chiudiAlbero();
+}
+function eliminaNuovo(n) {
+  const a = PER_N.get(n);
+  if (!confirm(`Eliminare l'albero nuovo n. ${num(a)} (${nomeSp(a)})?\nVengono cancellati anche il suo storico e le correzioni. Non si può annullare.`)) return;
+  rimuoviNuovo(n);
+  CLOUD.elimina("eventi", { n }); CLOUD.elimina("alberi_mod", { n }); CLOUD.elimina("nuovi_alberi", { n });
+  toast("Albero eliminato"); aggiorna();
+}
+
 /* ---------- Aggiornamenti dall'altro dispositivo ---------- */
 let rinvio = null;
 function ridisegnaPresto() {
@@ -1257,16 +1426,27 @@ function ridisegnaPresto() {
   }, 400);
 }
 window.applicaRemoto = (tab, riga, tipo) => {
-  if (!riga || tipo === "DELETE") return;
-  if (tab === "eventi") { if (!DB.eventi.some(e => e.id === riga.id)) DB.eventi.push(Object.assign({}, riga.dati, { id: riga.id })); }
-  else if (tab === "alberi_mod") DB.alberi[riga.n] = riga.dati;
+  if (!riga) return;
+  if (tipo === "DELETE") {
+    if (tab === "eventi") DB.eventi = DB.eventi.filter(e => e.id !== riga.id);
+    else if (tab === "alberi_mod") { delete DB.alberi[riga.n]; applicaCampi(riga.n); }
+    else if (tab === "ordini") delete DB.ordini[riga.id];
+    else if (tab === "nuovi_alberi" && PER_N.has(riga.n)) rimuoviNuovo(riga.n);
+    ridisegnaPresto(); return;
+  }
+  if (tab === "eventi") { const v = Object.assign({}, riga.dati, { id: riga.id }); const i = DB.eventi.findIndex(e => e.id === riga.id); if (i >= 0) DB.eventi[i] = v; else DB.eventi.push(v); }
+  else if (tab === "alberi_mod") { DB.alberi[riga.n] = riga.dati; applicaCampi(riga.n); }
   else if (tab === "ordini") DB.ordini[riga.id] = riga.dati;
   else if (tab === "impostazioni" && riga.id === "globali") { DB.impostazioni = Object.assign(DB.impostazioni, riga.dati); DB.impostazioni.nomi = DB.impostazioni.nomi || {}; }
-  else if (tab === "nuovi_alberi") { if (!PER_N.has(riga.n)) { DB.nuoviAlberi.push(riga.dati); aggiungiNuovo(riga.dati); } }
+  else if (tab === "nuovi_alberi") {
+    if (!PER_N.has(riga.n)) { DB.nuoviAlberi.push(riga.dati); aggiungiNuovo(riga.dati); }
+    else { const r = DB.nuoviAlberi.find(x => x.n === riga.n); if (r) Object.assign(r, riga.dati); const a = PER_N.get(riga.n); Object.assign(a, riga.dati, { s: indiceSpecie(riga.dati.com || "", riga.dati.bot || ""), a: indiceArea(riga.dati.areaNome || "Area non indicata") }); }
+  }
   ridisegnaPresto();
 };
 
 /* ---------- Avvio ---------- */
+Object.keys(DB.alberi).forEach(k => applicaCampi(+k));
 statoSalvataggio();
 aggiornaContatori();
 vai(innerWidth <= 900 ? "campo" : "oggi");
