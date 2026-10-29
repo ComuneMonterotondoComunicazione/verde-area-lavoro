@@ -500,8 +500,17 @@ const CLOUD = (() => {
     utente = sessione.user;
     email = (sessione.user.email || "").toLowerCase();
     caricamento("Verifico l'autorizzazione…", 8);
-    const { data: ok, error: eA } = await sb.rpc("autorizzato");
-    if (eA || !ok) { await sb.auth.signOut(); mostraAccesso(`L'email <b>${escC(email)}</b> non è tra quelle autorizzate. Chiedi all'Ufficio Ambiente di aggiungerla.`, "err"); return; }
+    // un errore di rete o di sessione non vuol dire "non autorizzato": si riprova e, se serve, si chiede di riprovare senza uscire
+    let ok = null, eA = null;
+    for (let t = 0; t < 3; t++) {
+      ({ data: ok, error: eA } = await sb.rpc("autorizzato"));
+      if (!eA) break;
+      console.warn("verifica autorizzazione, tentativo " + (t + 1), eA);
+      await new Promise(r => setTimeout(r, 1500 * (t + 1)));
+      if (t === 0) await sb.auth.refreshSession().catch(() => {});
+    }
+    if (eA) { carta().innerHTML = `${intestazione}<div class="msg err">Non riesco a verificare l'accesso: problema di connessione o sessione scaduta.<br><small>${escC(eA.message || eA)}</small></div><button class="btn pieno" onclick="location.reload()">Riprova</button><button class="btn" id="accEsci2" style="margin-top:8px">Esci e rientra con email e password</button>`; const b = $c("#accEsci2"); if (b) b.onclick = () => sb.auth.signOut({ scope: "local" }).then(() => location.reload()); return; }
+    if (!ok) { await sb.auth.signOut({ scope: "local" }); mostraAccesso(`L'email <b>${escC(email)}</b> non è tra quelle autorizzate. Chiedi all'Ufficio Ambiente di aggiungerla.`, "err"); return; }
     try {
       caricamento("Scarico il censimento…", 15);
       const meta = await tutte("censimento_meta");
