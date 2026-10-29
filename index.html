@@ -225,7 +225,7 @@
     .salvataggio span { display: none; }
     .app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
     .menu { flex-direction: row; order: 2; padding: 4px; overflow-x: auto; gap: 0; }
-    .menu button { flex-direction: column; gap: 2px; font-size: .66rem; padding: 6px 4px; flex: 1; min-width: 52px; position: relative; text-align: center; align-items: center; }
+    .menu button { flex-direction: column; gap: 2px; font-size: .6rem; padding: 6px 2px; flex: 1; min-width: 46px; overflow-wrap: anywhere; position: relative; text-align: center; align-items: center; }
     .menu button .cnt { position: absolute; top: 2px; right: 6px; margin: 0; }
     .menu .sep, .menu .piccolo { display: none; }
     .pagina { padding: 16px 14px 40px; }
@@ -266,6 +266,21 @@
   .azioni-voce button.rosso:hover { border-color: var(--rosso); }
   .mod { font-size: .78rem; color: var(--muschio); font-style: italic; margin-top: 4px; }
   .correzioni { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .fasi { display: flex; gap: 3px; margin-top: 6px; }
+  .fasi i { flex: 1; height: 7px; border-radius: 4px; background: #e4e0d3; display: block; }
+  .fasi i.ok { background: var(--foglia); } .fasi i.salta { background: #c9d6cd; } .fasi i.ora { background: var(--ambra); }
+  .fase { border: 1px solid var(--linea); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; }
+  .fase.fatta { background: var(--verde-bg); border-color: #cfe5d5; }
+  .fase .tit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .fase .tit b { font-size: 1rem; }
+  .fase .tit .num-fase { width: 26px; height: 26px; border-radius: 50%; background: var(--bosco); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: .85rem; }
+  .fase .tit label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: .86rem; color: var(--muschio); }
+  .fase .tit label input { width: auto; }
+  .fase .desc { color: var(--muschio); font-size: .86rem; margin: -6px 0 0 36px; }
+  .bilancio { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .riga-pratica { display: grid; grid-template-columns: 1fr minmax(160px, 260px) auto; gap: 14px; align-items: center; background: #fff; border: 1px solid var(--linea); border-radius: 14px; padding: 12px 14px; }
+  .riga-pratica small { color: var(--muschio); display: block; }
+  @media (max-width: 700px) { .riga-pratica { grid-template-columns: 1fr; } }
   .colonna header svg { width: 18px; height: 18px; flex: none; }
   #chiSono { overflow-wrap: anywhere; }
 </style>
@@ -285,6 +300,7 @@
     <button data-p="campo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>Sul campo</button>
     <button data-p="interventi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>Interventi</button>
     <button data-p="controlli"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Controlli</button>
+    <button data-p="abbattimenti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M8 16h8"/><path d="M12 16c-3.5 0-6-2.6-6-6 0-3 2.5-6 6-8 3.5 2 6 5 6 8 0 3.4-2.5 6-6 6Z"/><path d="m4 4 16 16"/></svg>Abbattimenti</button>
     <button data-p="storico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>Storico</button>
     <button data-p="mappa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>Mappa</button>
     <div class="sep"></div>
@@ -297,6 +313,7 @@
     <section class="pagina" data-pagina="campo" hidden></section>
     <section class="pagina" data-pagina="interventi" hidden></section>
     <section class="pagina" data-pagina="controlli" hidden></section>
+    <section class="pagina" data-pagina="abbattimenti" hidden></section>
     <section class="pagina" data-pagina="storico" hidden></section>
     <section data-pagina="mappa" hidden style="position:absolute;inset:0"><div id="mappaLavoro"></div>
       <div class="leg-mappa"><span><i style="background:#c8372d"></i>In ritardo / priorità alta</span><span><i style="background:#d9761e"></i>In scadenza (30 giorni)</span><span><i style="background:#2a6fb5"></i>Intervento aperto</span><span><i style="background:#9fb3a8"></i>Nessuna attività</span></div></section>
@@ -308,6 +325,7 @@
 <aside class="cassetto" id="cassetto" aria-label="Scheda albero"></aside>
 
 <dialog id="dlgControllo"><form method="dialog" id="formControllo"></form></dialog>
+<dialog id="dlgPratica" style="width:min(720px, calc(100% - 24px))"><form method="dialog" id="formPratica"></form></dialog>
 <dialog id="dlgVoce"><form method="dialog" id="formVoce"></form></dialog>
 <dialog id="dlgDati"><form method="dialog" id="formDati"></form></dialog>
 <dialog id="dlgNuovo"><form method="dialog" id="formNuovo"></form></dialog>
@@ -403,16 +421,28 @@ const CLOUD = (() => {
     $c("#accesso").hidden = false;
     let em = ""; try { em = localStorage.getItem("verde-ultima-email") || ""; } catch (e) {}
     carta().innerHTML = `${intestazione}
-      <p>Accesso riservato all'Ufficio Ambiente. Inserisci la tua email di lavoro: ti mandiamo un link e un codice per entrare.</p>
+      <p>Accesso riservato all'Ufficio Ambiente.</p>
       ${msg ? `<div class="msg ${tipo || "ok"}">${msg}</div>` : ""}
-      <form id="fEmail" style="display:grid;gap:12px"><label>Email<input id="accEmail" type="email" autocomplete="email" required value="${escC(em)}" placeholder="nome@comune.monterotondo.rm.it"></label>
-      <button class="btn pieno" type="submit">Inviami il link di accesso</button></form>
-      <div class="piccolo">Dopo il primo accesso resterai collegato su questo dispositivo.</div>`;
-    $c("#fEmail").onsubmit = async e => {
+      <form id="fPass" style="display:grid;gap:12px">
+        <label>Email<input id="accEmail" type="email" autocomplete="username" required value="${escC(em)}" placeholder="nome@comune.monterotondo.rm.it"></label>
+        <label>Password<input id="accPass" type="password" autocomplete="current-password" required></label>
+        <button class="btn pieno" type="submit">Entra</button></form>
+      <div class="piccolo" style="text-align:center;margin-top:4px">Primo accesso o password dimenticata?</div>
+      <button class="btn" id="accLink" type="button">Ricevi un link di accesso via email</button>
+      <div class="piccolo">Dopo l'accesso resterai collegato su questo dispositivo.</div>`;
+    const ricorda = () => { const v = $c("#accEmail").value.trim().toLowerCase(); try { localStorage.setItem("verde-ultima-email", v); } catch (er) {} return v; };
+    $c("#fPass").onsubmit = async e => {
       e.preventDefault();
-      const em2 = $c("#accEmail").value.trim().toLowerCase();
-      try { localStorage.setItem("verde-ultima-email", em2); } catch (er) {}
-      const b = e.target.querySelector("button"); b.disabled = true; b.textContent = "Invio in corso…";
+      const em2 = ricorda();
+      const b = e.target.querySelector("button"); b.disabled = true; b.textContent = "Accesso in corso…";
+      const { error } = await sb.auth.signInWithPassword({ email: em2, password: $c("#accPass").value });
+      if (error) mostraAccesso(/invalid/i.test(error.message) ? "Email o password non corretti. Se non hai ancora una password, tocca «Ricevi un link di accesso via email» e poi impostala in Impostazioni." : "Accesso non riuscito: " + escC(error.message), "err");
+    };
+    $c("#accLink").onclick = async () => {
+      const inp = $c("#accEmail");
+      if (!inp.value.trim() || !inp.checkValidity()) { inp.reportValidity(); return; }
+      const em2 = ricorda();
+      const b = $c("#accLink"); b.disabled = true; b.textContent = "Invio in corso…";
       const { error } = await sb.auth.signInWithOtp({ email: em2, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
       if (error) { mostraAccesso(/rate|limit/i.test(error.message) ? "Hai chiesto troppi link in poco tempo. Attendi qualche minuto e riprova." : "Invio non riuscito: " + escC(error.message), "err"); return; }
       mostraCodice(em2);
@@ -464,7 +494,9 @@ const CLOUD = (() => {
   }
 
   /* --------- avvio --------- */
+  let utente = null;
   async function entra(sessione) {
+    utente = sessione.user;
     email = (sessione.user.email || "").toLowerCase();
     caricamento("Verifico l'autorizzazione…", 8);
     const { data: ok, error: eA } = await sb.rpc("autorizzato");
@@ -476,9 +508,9 @@ const CLOUD = (() => {
       if (!M) { mostraImport(); return; }
       const alberi = (await tutte("alberi", "dati", "n")).map(r => r.dati);
       caricamento("Scarico gli aggiornamenti…", 70);
-      const [mod, nuovi, ordini, eventi, imp, persone] = await Promise.all([
+      const [mod, nuovi, ordini, eventi, imp, persone, pratiche, bilanci] = await Promise.all([
         tutte("alberi_mod", "n,dati"), tutte("nuovi_alberi", "n,dati", "n"), tutte("ordini", "id,dati"),
-        tutte("eventi", "id,dati,creato_da", "creato_il"), tutte("impostazioni", "id,dati"), tutte("utenti_autorizzati", "email,nome")]);
+        tutte("eventi", "id,dati,creato_da", "creato_il"), tutte("impostazioni", "id,dati"), tutte("utenti_autorizzati", "email,nome"), tutte("pratiche", "id,dati"), tutte("bilanci", "id,dati")]);
       const REMOTO = {
         alberi: Object.fromEntries(mod.map(r => [r.n, r.dati])),
         nuoviAlberi: nuovi.map(r => r.dati),
@@ -486,6 +518,8 @@ const CLOUD = (() => {
         eventi: eventi.map(r => Object.assign({}, r.dati, { id: r.id })),
         impostazioni: ((imp.find(r => r.id === "globali") || {}).dati) || null,
         persone: Object.fromEntries(persone.map(p => [p.email.toLowerCase(), p.nome || p.email])),
+        pratiche: Object.fromEntries(pratiche.map(r => [r.id, r.dati])),
+        bilanci: Object.fromEntries(bilanci.map(r => [r.id, r.dati])),
       };
       const DATI = Object.assign({}, M, { alberi });
       $c("#accesso").hidden = true;
@@ -499,7 +533,7 @@ const CLOUD = (() => {
   }
   function ascolta() {
     const ch = sb.channel("verde-lavoro");
-    ["alberi_mod", "nuovi_alberi", "ordini", "eventi", "impostazioni"].forEach(tab =>
+    ["alberi_mod", "nuovi_alberi", "ordini", "eventi", "impostazioni", "pratiche", "bilanci"].forEach(tab =>
       ch.on("postgres_changes", { event: "*", schema: "public", table: tab }, p => { if (window.applicaRemoto) window.applicaRemoto(tab, p.eventType === "DELETE" ? p.old : p.new, p.eventType); }));
     ch.subscribe();
   }
@@ -515,6 +549,12 @@ const CLOUD = (() => {
 
   return {
     get email() { return email; },
+    get senzaPassword() { return !(utente && utente.user_metadata && utente.user_metadata.password_impostata); },
+    async impostaPassword(pw) {
+      const { data, error } = await sb.auth.updateUser({ password: pw, data: { password_impostata: true } });
+      if (!error && data && data.user) utente = data.user;
+      return error;
+    },
     stato, onCambio(f) { ascoltatori.push(f); },
     elimina(tab, chiave) { coda.push({ tab, del: chiave }); salvaCoda(); avvisa(); svuota(); },
     scrivi(tab, riga) { coda.push({ tab, riga }); salvaCoda(); avvisa(); svuota(); },
@@ -562,6 +602,7 @@ const TIPI_EV = {
   intervento: { nome: "Intervento eseguito", col: "#2f8f5b", bg: "#e7f4ea", ic: '<path d="m5 12 5 5L20 7"/>' },
   ordine: { nome: "Intervento programmato", col: "#d9761e", bg: "#fff1e0", ic: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20"/>' },
   impianto: { nome: "Nuovo impianto", col: "#4c9a2a", bg: "#eaf6e1", ic: '<path d="M12 22V12"/><path d="M12 12c-4 0-7-3-7-7 4 0 7 3 7 7Z"/><path d="M12 15c3.5 0 6-2.5 6-6-3.5 0-6 2.5-6 6Z"/>' },
+  pratica: { nome: "Pratica di abbattimento", col: "#c8372d", bg: "#fdecea", ic: '<path d="M12 22v-6"/><path d="M8 16h8"/><path d="M12 16c-3.5 0-6-2.6-6-6 0-3 2.5-6 6-8 3.5 2 6 5 6 8 0 3.4-2.5 6-6 6Z"/>' },
   nota: { nome: "Nota", col: "#5b6b63", bg: "#eceae3", ic: '<path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/>' },
 };
 const ICO = {
@@ -590,6 +631,7 @@ const VUOTO = () => ({ versione: 1, eventi: [], ordini: {}, nuoviOrdini: [], nuo
   impostazioni: { mesi: { "A": 36, "B": 24, "B/C": 18, "C": 12, "C/D": 6, "D": 3, "D1": 3, "D2": 3, "NC": 12 }, operatore: "", ditte: [] } });
 let DB = VUOTO();
 DB.alberi = REMOTO.alberi; DB.nuoviAlberi = REMOTO.nuoviAlberi; DB.ordini = REMOTO.ordini; DB.eventi = REMOTO.eventi;
+DB.pratiche = REMOTO.pratiche || {}; DB.bilanci = REMOTO.bilanci || {};
 if (REMOTO.impostazioni) DB.impostazioni = Object.assign(DB.impostazioni, REMOTO.impostazioni);
 DB.impostazioni.nomi = DB.impostazioni.nomi || {};
 const PERSONE = REMOTO.persone || {};
@@ -721,7 +763,7 @@ function vai(p, opz) {
   document.querySelectorAll("[data-pagina]").forEach(s => s.hidden = s.dataset.pagina !== p);
   $("#contenuto").scrollTop = 0;
   if (p !== "campo") fermaGps();
-  ({ oggi: rOggi, campo: rCampo, interventi: rInterventi, controlli: rControlli, storico: rStorico, mappa: rMappa, impostazioni: rImpostazioni })[p](opz || {});
+  ({ abbattimenti: rAbbattimenti, oggi: rOggi, campo: rCampo, interventi: rInterventi, controlli: rControlli, storico: rStorico, mappa: rMappa, impostazioni: rImpostazioni })[p](opz || {});
 }
 function aggiorna() { vai(pagina); aggiornaContatori(); }
 
@@ -764,7 +806,7 @@ function avvisi(ordini) {
   const dSenza = ALBERI.filter(a => /^D/.test(stato(a).cpc) && !stato(a).abbattuto && !aperti.some(o => o.n === a.n && o.data));
   if (dSenza.length) L.push({ liv: "alto", ic: ICO.alert, t: "Alberi in classe D senza intervento programmato", s: "Propensione al cedimento estrema: programmare un intervento o una data.", n: dSenza.length, vai: ["interventi", { cpcD: true }] });
   const abb = aperti.filter(o => o.cat === "abbattimento");
-  if (abb.length) L.push({ liv: "alto", ic: ICO.sega, t: "Abbattimenti prescritti ancora aperti", s: "Verificare autorizzazioni e programmare la sostituzione.", n: abb.length, vai: ["interventi", { cat: "abbattimento" }] });
+  if (abb.length) L.push({ liv: "alto", ic: ICO.sega, t: "Abbattimenti prescritti ancora aperti", s: "Avviare le pratiche: perizia, autorizzazione, abbattimento e nuovo albero.", n: abb.length, vai: ["abbattimenti", {}] });
   const scuole = ALBERI.filter(a => a.t === "Scuola" && ["C", "C/D", "D", "D1", "D2"].includes(stato(a).cpc));
   if (scuole.length) L.push({ liv: "medio", ic: ICO.scuola, t: "Alberi nelle scuole in classe C o superiore", s: "Bersaglio sensibile: priorità nei controlli.", n: scuole.length, vai: ["controlli", { scuole: true }] });
   const cancro = ALBERI.filter(a => /cancro/i.test((a.no || "") + " " + (a.df || "")));
@@ -776,6 +818,13 @@ function avvisi(ordini) {
   if (m >= 10 || m <= 3) L.push({ liv: "stagione", ic: ICO.bug, t: "Processionaria del pino: controllo dei nidi", s: "Tra autunno e fine inverno i nidi sono visibili sulle chiome.", n: pini.length, vai: ["mappa", { genere: "Pinus" }] });
   const palme = ALBERI.filter(a => /^(Phoenix|Washingtonia|Chamaerops)/.test(SPECIE[a.s][1] || "") || /Palma/.test(SPECIE[a.s][0] || ""));
   if (palme.length) L.push({ liv: "info", ic: ICO.bug, t: "Palme: monitoraggio punteruolo rosso", s: "Controllare periodicamente la corona fogliare.", n: palme.length, vai: ["mappa", { palme: true }] });
+  const PR = Object.values(DB.pratiche || {}).filter(p => PER_N.get(p.n));
+  const mancanti = PR.filter(p => p.fasi.esecuzione && p.fasi.esecuzione.fatto && !(p.fasi.ripiantumazione && p.fasi.ripiantumazione.fatto));
+  if (impAbb().sostituzione && mancanti.length) L.push({ liv: "alto", ic: ICO.sega, t: "Alberi abbattuti ancora da sostituire", s: "Regola: un albero nuovo per ogni albero abbattuto, nello stallo rimasto vuoto.", n: mancanti.length, vai: ["abbattimenti", { f: "mancanti" }] });
+  const ferme = PR.filter(p => statoPratica(p).k === "corso" && p.aggiornata && p.aggiornata < piuGiorni(OGGI_S, -30));
+  if (ferme.length) L.push({ liv: "medio", ic: ICO.cal, t: "Pratiche di abbattimento ferme da oltre 30 giorni", s: "Nessun passo avanti nell'ultimo mese.", n: ferme.length, vai: ["abbattimenti", { f: "corso" }] });
+  const garScad = PR.filter(p => statoPratica(p).k === "garanzia" && p.fasi.garanzia.fine && p.fasi.garanzia.fine <= piuGiorni(OGGI_S, 60));
+  if (garScad.length) L.push({ liv: "medio", ic: ICO.goccia, t: "Garanzie di attecchimento in scadenza", s: "Entro 60 giorni: verificare l'attecchimento prima della fine della garanzia.", n: garScad.length, vai: ["abbattimenti", { f: "garanzia" }] });
   if (m >= 3 && m <= 7) L.push({ liv: "stagione", ic: ICO.uccello, t: "Periodo di nidificazione", s: "Prima di potature e abbattimenti verificare la presenza di nidi.", n: "", vai: null });
   return L;
 }
@@ -787,7 +836,7 @@ function rOggi() {
   const fattiAnno = DB.eventi.filter(e => e.tipo === "intervento" && (e.data || "").startsWith(String(OGGI.getFullYear()))).length;
   const giorno = OGGI.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const s = $('[data-pagina="oggi"]');
-  s.innerHTML = `<h2>Buongiorno${DB.impostazioni.operatore ? ", " + esc(DB.impostazioni.operatore) : ""}</h2><p class="sotto">${giorno[0].toUpperCase() + giorno.slice(1)} · ecco cosa c'è da fare.</p>
+  s.innerHTML = (CLOUD.senzaPassword ? `<div class="avviso info" style="margin-bottom:16px;cursor:default"><span class="ic">${svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span><b>Imposta una password</b><small>Così entrerai con email e password, senza aspettare l'email di accesso.</small></span><button class="btn" data-vai="impostazioni">Imposta</button></div>` : "") + `<h2>Buongiorno${DB.impostazioni.operatore ? ", " + esc(DB.impostazioni.operatore) : ""}</h2><p class="sotto">${giorno[0].toUpperCase() + giorno.slice(1)} · ecco cosa c'è da fare.</p>
     <div class="kpi">
       <button class="rosso" data-vai="controlli" data-f="ritardo"><b class="num">${fmt(R.ritardo.length)}</b><span>attività in ritardo</span></button>
       <button class="arancio" data-vai="controlli" data-f="30"><b class="num">${fmt(R.settimana.length + R.mese.length)}</b><span>in scadenza nei prossimi 30 giorni</span></button>
@@ -1081,6 +1130,12 @@ function apriAlbero(n) {
       </dl>
       <div class="sezione-t" style="margin-top:0">Interventi</div>
       ${ordini.length ? ordini.map(o => `<div class="ordine-mini" data-ordine="${o.id}"><b>${esc(CAT[o.cat])}</b><span><span class="pill p-${o.prio}">${o.prio}</span> <span class="pill s-${o.stato}">${STATI[o.stato]}</span></span><small>${esc(o.testo)}${o.data ? " · " + dataTxt(o.data) : ""}${o.ditta ? " · " + esc(o.ditta) : ""}</small></div>`).join("") : `<p style="color:var(--muschio);margin:0 0 8px">Nessun intervento prescritto.</p>`}
+      ${(() => { const pr = praticaDi(n), ab = tuttiOrdini().find(o => o.n === n && o.cat === "abbattimento" && o.stato !== "annullato");
+        const sost = Object.values(DB.pratiche).find(x => x.nuovoN === n);
+        if (pr) return `<div class="sezione-t">Pratica di abbattimento</div><div class="ordine-mini" data-pratica="${esc(pr.id)}"><b>${esc(statoPratica(pr).testo)}</b><span></span><small>${barraFasi(pr)}</small></div>`;
+        if (sost && PER_N.get(sost.n)) return `<div class="sezione-t">Sostituzione</div><div class="ordine-mini" data-pratica="${esc(sost.id)}"><b>Nuovo albero che sostituisce il n. ${num(PER_N.get(sost.n))}</b><span></span><small>${esc(statoPratica(sost).testo)}</small></div>`;
+        if (ab && !s.abbattuto) return `<div class="sezione-t">Pratica di abbattimento</div><button class="btn" id="cAvviaPr" data-ord="${esc(ab.id)}">Avvia pratica di abbattimento</button>`;
+        return ""; })()}
       <div class="sezione-t">Storico dell'albero</div>
       <ul class="timeline">${ev.map(e => { const T = TIPI_EV[e.tipo] || TIPI_EV.nota; return `<li><span class="ic" style="background:${T.bg};color:${T.col}">${svg(T.ic)}</span><div class="riga"><header><b>${T.nome}</b><time>${dataTxt(e.data)}</time></header><p>${esc(e.testo)}</p>${e.chi || e.ditta || e.costo ? `<div class="chi">${[e.chi && "Da " + esc(e.chi), e.ditta && "Ditta: " + esc(e.ditta), e.costo && "€ " + esc(e.costo)].filter(Boolean).join(" · ")}</div>` : ""}${fotoHtml(e.foto)}${e.base ? `<div class="chi">Dal file del censimento</div>` : azioniVoce(e)}</div></li>`; }).join("")}</ul>
       <div class="sezione-t">Posizione</div>
@@ -1101,6 +1156,8 @@ function apriAlbero(n) {
   $("#cassetto").querySelectorAll("[data-ordine]").forEach(b => b.onclick = () => apriOrdine(b.dataset.ordine));
   caricaFoto($("#cassetto")); collegaAzioniVoce($("#cassetto"));
   $("#cCorreggi").onclick = () => correggiDati(n);
+  $("#cassetto").querySelectorAll("[data-pratica]").forEach(b => b.onclick = () => apriPratica(b.dataset.pratica));
+  if ($("#cAvviaPr")) $("#cAvviaPr").onclick = () => { const pr = nuovaPratica(n, $("#cAvviaPr").dataset.ord); apriPratica(pr.id); };
   if ($("#cRipristina")) $("#cRipristina").onclick = () => ripristinaAlbero(n);
   if ($("#cModNuovo")) $("#cModNuovo").onclick = () => modificaNuovo(n);
   if ($("#cDelNuovo")) $("#cDelNuovo").onclick = () => eliminaNuovo(n);
@@ -1224,6 +1281,11 @@ function rImpostazioni() {
     <div class="box"><h3>Il tuo accesso</h3><p>Sei collegato come <b>${esc(CLOUD.email)}</b>. Stato: <b>${esc(st.testo)}</b>.</p>
       <label style="display:grid;gap:6px;font-weight:700;color:var(--muschio);font-size:.88rem;max-width:360px">Nome mostrato nello storico<input id="opNome" value="${esc(ioNome())}" style="border:1.5px solid var(--linea);border-radius:10px;padding:8px 12px;font-weight:400"></label>
       <div style="margin-top:12px"><button class="btn" id="esci">Esci da questo dispositivo</button></div></div>
+    <div class="box" id="boxPw"><h3>Password</h3><p>${CLOUD.senzaPassword ? "<b>Non hai ancora una password.</b> Impostala per entrare con email e password, senza aspettare l'email." : "Entri con email e password. Puoi cambiarla quando vuoi."}</p>
+      <div style="display:grid;gap:8px;max-width:360px">
+        <input id="pw1" type="password" autocomplete="new-password" placeholder="Nuova password (almeno 8 caratteri)" style="border:1.5px solid var(--linea);border-radius:10px;padding:9px 12px">
+        <input id="pw2" type="password" autocomplete="new-password" placeholder="Ripeti la password" style="border:1.5px solid var(--linea);border-radius:10px;padding:9px 12px">
+        <button class="btn pieno" id="pwSalva" style="justify-content:center">Salva password</button></div></div>
     <div class="box"><h3>Notifiche email</h3><p>Ogni mattina verso le 7 arriva un'email con i controlli e gli interventi in scadenza. Il lunedì arriva anche il riepilogo dei ritardi e degli avvisi, il primo del mese gli avvisi di stagione. Se non c'è nulla in scadenza, l'email non arriva.</p>
       <div style="display:grid;gap:10px">
         <label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="ntAttive" ${NT.attive ? "checked" : ""}> Invia le email di promemoria</label>
@@ -1235,6 +1297,11 @@ function rImpostazioni() {
           ${Object.entries(PERSONE).map(([em, nm]) => `<label style="display:flex;gap:6px;align-items:center;margin-bottom:4px;overflow-wrap:anywhere"><input type="checkbox" data-dest="${esc(em)}" ${NT.esclusi.includes(em) ? "" : "checked"}> ${esc(nm)} <span style="color:var(--muschio)">· ${esc(em)}</span></label>`).join("")}</div>
         <div><button class="btn" id="ntProva">Mandami un'email di prova</button></div>
       </div></div>
+    <div class="box"><h3>Abbattimenti e sostituzioni</h3><p>Valori iniziali <b>da confermare con l'agronomo e l'ufficio</b>.</p>
+      <div style="display:grid;gap:10px;max-width:420px">
+        <label style="display:grid;gap:4px;font-weight:700;color:var(--muschio);font-size:.86rem">Durata della garanzia di attecchimento (mesi)<input type="number" id="abGar" min="1" max="60" value="${impAbb().garanziaMesi}" style="border:1.5px solid var(--linea);border-radius:10px;padding:8px 12px;font-weight:400"></label>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="abSost" ${impAbb().sostituzione ? "checked" : ""}> Un albero nuovo per ogni albero abbattuto (avviso se manca la sostituzione)</label>
+      </div></div>
     <div class="box"><h3>Intervallo tra i controlli (mesi)</h3><p>Usato per proporre la data del prossimo controllo in base alla classe di stabilità. Valori indicativi: <b>da confermare con l'agronomo</b>.</p>
       <div class="intervalli">${CPC_LISTA.map(k => `<label><span><span class="cpc" style="background:${CPC_COL[k]}">${k}</span></span><input type="number" min="1" max="120" data-cpc="${k}" value="${I.mesi[k] || ""}"></label>`).join("")}</div></div>
     <div class="box"><h3>Esporta</h3><p>Scarica lo storico in formato Excel (CSV) o una copia completa dei dati.</p>
@@ -1242,6 +1309,8 @@ function rImpostazioni() {
       <p style="margin:10px 0 0;font-size:.88rem">Attività registrate: <b>${fmt(DB.eventi.length)}</b> · Interventi aggiornati: <b>${fmt(Object.keys(DB.ordini).length)}</b> · Alberi nuovi: <b>${fmt(DB.nuoviAlberi.length)}</b></p></div>
     <div class="box"><h3>Installa sul telefono</h3><p>Su Android (Chrome): menu ⋮ → <b>Aggiungi a schermata Home</b> / Installa app. Su iPhone (Safari): pulsante Condividi → <b>Aggiungi alla schermata Home</b>. L'Area di lavoro si aprirà come un'app.</p></div>
   </div>`;
+  $("#abGar").onchange = e => { DB.impostazioni.abbattimenti = Object.assign(impAbb(), { garanziaMesi: +e.target.value || 24 }); scriviImpostazioni(); toast("Impostazione salvata"); };
+  $("#abSost").onchange = e => { DB.impostazioni.abbattimenti = Object.assign(impAbb(), { sostituzione: e.target.checked }); scriviImpostazioni(); toast("Impostazione salvata"); };
   const salvaNT = () => { scriviImpostazioni(); toast("Preferenze salvate"); };
   $("#ntAttive").onchange = e => { NT.attive = e.target.checked; salvaNT(); };
   $("#ntOggi").onchange = e => { NT.giornoStesso = e.target.checked; salvaNT(); };
@@ -1260,7 +1329,17 @@ function rImpostazioni() {
   };
   $("#opNome").onchange = e => { const v = e.target.value.trim(); if (!v) return; I.nomi[CLOUD.email] = v; scriviImpostazioni(); toast("Nome salvato"); };
   s.querySelectorAll("[data-cpc]").forEach(i => i.onchange = () => { I.mesi[i.dataset.cpc] = +i.value || null; scriviImpostazioni(); toast("Intervallo salvato"); });
-  $("#esci").onclick = () => { if (confirm("Uscire? Per rientrare servirà un nuovo link via email.")) CLOUD.esci(); };
+  $("#esci").onclick = () => { if (confirm("Uscire da questo dispositivo? Per rientrare serviranno email e password, oppure un link via email.")) CLOUD.esci(); };
+  $("#pwSalva").onclick = async () => {
+    const a = $("#pw1").value, b = $("#pw2").value;
+    if (a.length < 8) return toast("La password deve avere almeno 8 caratteri");
+    if (a !== b) return toast("Le due password non coincidono");
+    const btn = $("#pwSalva"); btn.disabled = true; btn.textContent = "Salvataggio…";
+    const err = await CLOUD.impostaPassword(a);
+    btn.disabled = false; btn.textContent = "Salva password";
+    if (err) { toast(/different/i.test(err.message) ? "La nuova password deve essere diversa da quella attuale" : "Password non salvata: " + err.message); return; }
+    $("#pw1").value = $("#pw2").value = ""; toast("Password salvata"); rImpostazioni();
+  };
   $("#bkScarica").onclick = () => scarica(new Blob([JSON.stringify({ esportato: new Date().toISOString(), alberi: DB.alberi, nuoviAlberi: DB.nuoviAlberi, ordini: DB.ordini, eventi: DB.eventi, impostazioni: DB.impostazioni })], { type: "application/json" }), `verde-monterotondo-copia-${OGGI_S}.json`);
   $("#csvStorico").onclick = () => {
     const q = v => { v = String(v ?? ""); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
@@ -1270,6 +1349,208 @@ function rImpostazioni() {
   };
 }
 function scarica(blob, nome) { const u = URL.createObjectURL(blob), l = document.createElement("a"); l.href = u; l.download = nome; l.click(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+
+/* ---------- Abbattimenti e sostituzioni ---------- */
+const FASI = [
+  { k: "perizia", nome: "Perizia", desc: "Valutazione tecnica che motiva l'abbattimento (classe, difetti, prove strumentali, foto)." },
+  { k: "autorizzazione", nome: "Autorizzazione", desc: "Atto che autorizza l'abbattimento (determina, ordinanza, eventuali pareri)." },
+  { k: "comunicazione", nome: "Comunicazione", desc: "Avviso ai cittadini, alla scuola o ai residenti, se necessario." },
+  { k: "esecuzione", nome: "Abbattimento", desc: "Esecuzione dei lavori e rimozione della ceppaia." },
+  { k: "ripiantumazione", nome: "Nuovo albero", desc: "Messa a dimora del nuovo albero nello stallo rimasto vuoto (o in un altro stallo libero)." },
+  { k: "garanzia", nome: "Garanzia di attecchimento", desc: "Controlli e irrigazione nei primi anni; sostituzione se la pianta non attecchisce." },
+];
+const impAbb = () => Object.assign({ garanziaMesi: 24, sostituzione: true }, DB.impostazioni.abbattimenti || {});
+const praticaDi = n => Object.values(DB.pratiche).find(p => p.n === n);
+const salvaPratica = p => { p.aggiornata = OGGI_S; DB.pratiche[p.id] = p; CLOUD.scrivi("pratiche", { id: p.id, n: p.n, dati: p, aggiornato_il: new Date().toISOString() }); };
+const faseOk = (p, k) => p.fasi[k] && (p.fasi[k].fatto || p.fasi[k].nonServe);
+function statoPratica(p) {
+  if (p.chiusa) return { k: "conclusa", testo: "Conclusa", col: "s-fatto" };
+  const f = FASI.find(f => !faseOk(p, f.k));
+  if (!f) return { k: "conclusa", testo: "Conclusa", col: "s-fatto" };
+  if (f.k === "garanzia") return { k: "garanzia", testo: "In garanzia" + (p.fasi.garanzia && p.fasi.garanzia.fine ? " fino a " + dataTxt(p.fasi.garanzia.fine) : ""), col: "s-prog", fase: f };
+  return { k: "corso", testo: "Prossimo passo: " + f.nome.toLowerCase(), col: f.k === "ripiantumazione" ? "p-alta" : "s-corso", fase: f };
+}
+const barraFasi = p => `<div class="fasi" title="${FASI.map(f => f.nome).join(" → ")}">${FASI.map(f => { const x = p.fasi[f.k] || {}; const ora = statoPratica(p).fase && statoPratica(p).fase.k === f.k; return `<i class="${x.fatto ? "ok" : x.nonServe ? "salta" : ora ? "ora" : ""}"></i>`; }).join("")}</div>`;
+function abbAperti() { return tuttiOrdini().filter(o => o.cat === "abbattimento" && o.stato !== "annullato"); }
+function stalliLiberi() { return ALBERI.filter(a => a.sd && !stato(a).abbattuto); }
+function nuovaPratica(n, ordineId) {
+  const id = "A" + n;
+  if (DB.pratiche[id]) return DB.pratiche[id];
+  const p = { id, n, ordine: ordineId || "", creata: OGGI_S, fasi: {} };
+  salvaPratica(p);
+  registra({ tipo: "pratica", n, data: OGGI_S, testo: "Avviata la pratica di abbattimento" });
+  return p;
+}
+function rAbbattimenti(opz) {
+  const s = $('[data-pagina="abbattimenti"]');
+  const anno = String(OGGI.getFullYear());
+  const P = Object.values(DB.pratiche).filter(p => PER_N.get(p.n));
+  const abbAnno = P.filter(p => p.fasi.esecuzione && p.fasi.esecuzione.fatto && (p.fasi.esecuzione.data || "").startsWith(anno)).length;
+  const ripAnno = P.filter(p => p.fasi.ripiantumazione && p.fasi.ripiantumazione.fatto && (p.fasi.ripiantumazione.data || "").startsWith(anno)).length;
+  const mancanti = P.filter(p => p.fasi.esecuzione && p.fasi.esecuzione.fatto && !(p.fasi.ripiantumazione && p.fasi.ripiantumazione.fatto));
+  const daAvviare = abbAperti().filter(o => o.stato !== "fatto" && !praticaDi(o.n));
+  const F = rAbbattimenti.f = opz.f || rAbbattimenti.f || "corso";
+  const lista = P.filter(p => F === "tutte" ? true : F === "mancanti" ? mancanti.includes(p) : statoPratica(p).k === F)
+    .sort((a, b) => (a.aggiornata || "").localeCompare(b.aggiornata || ""));
+  const cnt = k => k === "tutte" ? P.length : k === "mancanti" ? mancanti.length : P.filter(p => statoPratica(p).k === k).length;
+  s.innerHTML = `<h2>Abbattimenti e sostituzioni</h2><p class="sotto">Ogni abbattimento segue il suo iter, fino al nuovo albero nello stallo rimasto vuoto. Regola: un albero piantato per ogni albero abbattuto.</p>
+    <div class="bilancio kpi">
+      <button><b class="num">${fmt(abbAnno)}</b><span>alberi abbattuti nel ${anno}</span></button>
+      <button><b class="num">${fmt(ripAnno)}</b><span>alberi ripiantati nel ${anno}</span></button>
+      <button class="${ripAnno - abbAnno < 0 ? "rosso" : ""}"><b class="num">${ripAnno - abbAnno > 0 ? "+" : ""}${fmt(ripAnno - abbAnno)}</b><span>saldo del verde nel ${anno}</span></button>
+      <button class="${mancanti.length ? "rosso" : ""}" data-f="mancanti"><b class="num">${fmt(mancanti.length)}</b><span>sostituzioni mancanti</span></button>
+      <button data-f="garanzia"><b class="num">${fmt(cnt("garanzia"))}</b><span>nuovi alberi in garanzia</span></button>
+      <button><b class="num">${fmt(stalliLiberi().length)}</b><span>stalli liberi censiti</span></button>
+    </div>
+    <div class="filtri"><div class="schede-stato">${[["corso", "In corso"], ["mancanti", "Sostituzioni mancanti"], ["garanzia", "In garanzia"], ["conclusa", "Concluse"], ["tutte", "Tutte"]].map(([k, t]) => `<button data-f="${k}" class="${F === k ? "attivo" : ""}">${t}<span>${fmt(cnt(k))}</span></button>`).join("")}</div></div>
+    <div style="display:grid;gap:8px">${lista.map(p => { const a = PER_N.get(p.n), st = statoPratica(p); return `<div class="riga-pratica">
+      <div><b>n. ${num(a)} · ${esc(nomeSp(a))}</b><small>${esc(luogo(a))} · avviata il ${dataTxt(p.creata)}${p.nuovoN && PER_N.get(p.nuovoN) ? ` · sostituito da n. ${num(PER_N.get(p.nuovoN))} ${esc(nomeSp(PER_N.get(p.nuovoN)))}` : ""}</small></div>
+      <div><span class="pill ${st.col}">${esc(st.testo)}</span>${barraFasi(p)}</div>
+      <button class="btn" data-pratica="${esc(p.id)}">Apri pratica</button></div>`; }).join("") || `<div class="vuoto">Nessuna pratica in questo elenco.</div>`}</div>
+    <div class="sezione-t">Abbattimenti prescritti da avviare (${fmt(daAvviare.length)})</div>
+    <p class="sotto" style="margin-top:-4px">Prescrizioni di abbattimento del censimento o inserite a mano, senza ancora una pratica.</p>
+    <div class="tabella-wrap"><table><thead><tr><th>Priorità</th><th>Albero</th><th>Luogo</th><th>Prescrizione</th><th></th></tr></thead><tbody>
+    ${daAvviare.slice(0, 200).map(o => { const a = PER_N.get(o.n); return `<tr><td><span class="pill p-${o.prio}">${o.prio}</span></td><td><b>n. ${num(a)}</b><span class="sub">${esc(nomeSp(a))}</span></td><td>${esc(luogo(a))}</td><td><span class="sub">${esc(o.testo)}</span></td>
+      <td><button class="btn" data-avvia="${o.n}" data-ord="${esc(o.id)}">Avvia pratica</button></td></tr>`; }).join("") || `<tr><td colspan="5" class="vuoto">Nessun abbattimento da avviare.</td></tr>`}
+    </tbody></table></div>
+    ${sezioneBilanci()}`;
+  attivaBilanci(s);
+  s.querySelectorAll("[data-f]").forEach(b => b.onclick = () => rAbbattimenti({ f: b.dataset.f }));
+  s.querySelectorAll("[data-pratica]").forEach(b => b.onclick = () => apriPratica(b.dataset.pratica));
+  s.querySelectorAll("[data-avvia]").forEach(b => b.onclick = () => { const p = nuovaPratica(+b.dataset.avvia, b.dataset.ord); apriPratica(p.id); });
+}
+/* bilancio del verde mese per mese (tabella bilanci, calcolato dalla funzione promemoria) */
+const MESI_N = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+const nomeMese = ym => MESI_N[+ym.slice(5) - 1] + " " + ym.slice(0, 4);
+const meseScorso = () => { const d = new Date(OGGI.getFullYear(), OGGI.getMonth() - 1, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
+const segnoN = n => (n > 0 ? "+" : "") + fmt(n);
+const euroTxt = v => "€ " + (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function sezioneBilanci() {
+  const B = Object.values(DB.bilanci || {}).sort((a, b) => b.mese.localeCompare(a.mese));
+  const ms = meseScorso();
+  return `<div class="sezione-t">Bilancio del verde mese per mese</div>
+    <p class="sotto" style="margin-top:-4px">Ogni primo del mese il sistema calcola da solo il bilancio del mese appena finito, lo salva qui e lo manda nell'email del mattino. Puoi anche generarlo (o ricalcolarlo) a mano.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <button class="btn pieno" id="bilGenera" data-mese="${ms}">Genera il bilancio di ${nomeMese(ms)}</button>
+      <label style="display:flex;gap:6px;align-items:center;font-size:.86rem;color:var(--muschio)">Altro mese <input type="month" id="bilMese" max="${OGGI_S.slice(0, 7)}" style="width:auto;border:1.5px solid var(--linea);border-radius:10px;padding:6px 10px"></label>
+      <button class="btn" id="bilAltro">Genera</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="bilCsv" ${B.length ? "" : "disabled"}>Scarica (Excel/CSV)</button>
+    </div>
+    <div class="tabella-wrap"><table><thead><tr><th>Mese</th><th>Abbattuti</th><th>Piantati</th><th>Saldo</th><th>Interventi</th><th>Costi</th><th>Controlli</th><th>Saldo da inizio anno</th><th>A fine mese</th></tr></thead><tbody>
+    ${B.map(b => `<tr><td><b>${nomeMese(b.mese)}</b><span class="sub">generato il ${dataTxt(b.generato)}</span></td><td>${fmt(b.abbattuti)}</td>
+      <td>${fmt(b.piantati)}${b.sostituzioni ? `<span class="sub">${fmt(b.sostituzioni)} sostituzioni</span>` : ""}</td>
+      <td><b style="color:${b.saldo < 0 ? "#c8372d" : "var(--bosco)"}">${segnoN(b.saldo)}</b></td>
+      <td>${fmt(b.interventi)}${Object.keys(b.interventiPerTipo || {}).length ? `<span class="sub">${Object.entries(b.interventiPerTipo).map(([k, v]) => esc(k) + " " + v).join(", ")}</span>` : ""}</td>
+      <td>${euroTxt(b.costi)}</td><td>${fmt(b.controlli)}</td>
+      <td>${segnoN(b.anno.saldo)}<span class="sub">piantati ${fmt(b.anno.piantati)}, abbattuti ${fmt(b.anno.abbattuti)}</span></td>
+      <td><span class="sub">sostituzioni mancanti ${fmt(b.fineMese.sostituzioniMancanti)} · in garanzia ${fmt(b.fineMese.inGaranzia)} · controlli in ritardo ${fmt(b.fineMese.controlliInRitardo)} · interventi aperti ${fmt(b.fineMese.interventiAperti)}</span></td></tr>`).join("")
+      || `<tr><td colspan="9" class="vuoto">Nessun bilancio ancora: il primo arriverà automaticamente il 1° del mese, oppure premi "Genera".</td></tr>`}
+    </tbody></table></div>`;
+}
+async function generaBilancio(ym, btn) {
+  if (!/^\d{4}-\d{2}$/.test(ym || "")) return toast("Scegli un mese");
+  const t = btn.textContent; btn.disabled = true; btn.textContent = "Calcolo in corso…";
+  try {
+    const { data, error } = await sb.functions.invoke("promemoria", { body: { bilancio: ym } });
+    if (error) throw error;
+    if (!data || data.errore) throw new Error((data && data.errore) || "risposta vuota");
+    DB.bilanci = DB.bilanci || {}; DB.bilanci[data.bilancio.mese] = data.bilancio;
+    toast("Bilancio di " + nomeMese(ym) + " pronto"); rAbbattimenti({});
+  } catch (e) { toast("Bilancio non generato: " + (e.message || e)); console.error(e); btn.disabled = false; btn.textContent = t; }
+}
+function attivaBilanci(s) {
+  s.querySelector("#bilGenera").onclick = e => generaBilancio(e.target.dataset.mese, e.target);
+  s.querySelector("#bilAltro").onclick = e => generaBilancio(s.querySelector("#bilMese").value, e.target);
+  s.querySelector("#bilCsv").onclick = () => {
+    const q = v => { v = String(v ?? ""); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const righe = [["Mese", "Abbattuti", "Piantati", "di cui sostituzioni", "Saldo", "Interventi", "Interventi per tipo", "Costi (€)", "Controlli", "Saldo da inizio anno", "Piantati da inizio anno", "Abbattuti da inizio anno", "Sostituzioni mancanti a fine mese", "In garanzia a fine mese", "Controlli in ritardo a fine mese", "Interventi aperti a fine mese", "Generato il"].join(";")];
+    Object.values(DB.bilanci || {}).sort((a, b) => a.mese.localeCompare(b.mese)).forEach(b => righe.push([nomeMese(b.mese), b.abbattuti, b.piantati, b.sostituzioni, b.saldo, b.interventi,
+      Object.entries(b.interventiPerTipo || {}).map(([k, v]) => k + " " + v).join(", "), String(b.costi).replace(".", ","), b.controlli, b.anno.saldo, b.anno.piantati, b.anno.abbattuti,
+      b.fineMese.sostituzioniMancanti, b.fineMese.inGaranzia, b.fineMese.controlliInRitardo, b.fineMese.interventiAperti, b.generato].map(q).join(";")));
+    scarica(new Blob(["\ufeff" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }), `bilancio-verde-mensile-${OGGI_S}.csv`);
+  };
+}
+function apriPratica(id) {
+  const p = DB.pratiche[id]; if (!p) return;
+  const a = PER_N.get(p.n), I = impAbb();
+  const v = k => p.fasi[k] || {};
+  const nomiSp = [...new Set(SPECIE.map(x => x[0]).filter(Boolean))].sort((x, y) => x.localeCompare(y, "it"));
+  const stalli = stalliLiberi().map(x => ({ x, d: distanza(posAlbero(a), posAlbero(x)) })).sort((m, q) => m.d - q.d).slice(0, 40);
+  const campo = (k, nome, tipo, lab, extra = "") => {
+    const val = v(k)[nome] ?? "";
+    if (tipo === "textarea") return `<label>${lab}<textarea name="${k}.${nome}" ${extra}>${esc(val)}</textarea></label>`;
+    if (tipo === "check") return `<label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="${k}.${nome}" style="width:auto" ${val ? "checked" : ""}> ${lab}</label>`;
+    return `<label>${lab}<input type="${tipo}" name="${k}.${nome}" value="${esc(val)}" ${extra}></label>`;
+  };
+  const corpo = {
+    perizia: campo("perizia", "data", "date", "Data") + campo("perizia", "note", "textarea", "Esito e motivazione", 'placeholder="Es. carie estesa al colletto, classe D, prova resistografica del…"'),
+    autorizzazione: `<div class="due">${campo("autorizzazione", "data", "date", "Data dell'atto")}${campo("autorizzazione", "atto", "text", "Atto", 'placeholder="Es. determina n. 123/2026"')}</div>` + campo("autorizzazione", "note", "textarea", "Note (pareri, vincoli…)"),
+    comunicazione: campo("comunicazione", "data", "date", "Data") + campo("comunicazione", "note", "textarea", "A chi e come", 'placeholder="Es. avviso affisso, comunicazione alla scuola"'),
+    esecuzione: `<div class="due">${campo("esecuzione", "data", "date", "Data dell'abbattimento")}${campo("esecuzione", "ditta", "text", "Ditta / squadra")}</div><div class="due">${campo("esecuzione", "costo", "text", "Costo (€)", 'inputmode="decimal"')}${campo("esecuzione", "ceppaia", "check", "Ceppaia rimossa")}</div>` + campo("esecuzione", "note", "textarea", "Note"),
+    ripiantumazione: p.nuovoN && PER_N.get(p.nuovoN)
+      ? `<p style="margin:0">Nuovo albero <b>n. ${num(PER_N.get(p.nuovoN))} · ${esc(nomeSp(PER_N.get(p.nuovoN)))}</b>, messo a dimora il ${dataTxt(v("ripiantumazione").data || p.creata)}${v("ripiantumazione").dove === "sito" ? " in un altro stallo libero" : " nello stesso stallo"}. <button class="btn" type="button" data-apri-albero="${p.nuovoN}">Apri la sua scheda</button></p>`
+      : `<div class="due">${campo("ripiantumazione", "data", "date", "Data di messa a dimora")}<label>Specie<input name="ripiantumazione.specie" list="dlSpPr" value="${esc(v("ripiantumazione").specie || "")}" placeholder="Es. Leccio"><datalist id="dlSpPr">${nomiSp.map(x => `<option value="${esc(x)}">`).join("")}</datalist></label></div>
+        <label>Dove<select name="ripiantumazione.dove"><option value="stesso" ${v("ripiantumazione").dove !== "sito" ? "selected" : ""}>Nello stesso stallo dell'albero abbattuto</option><option value="sito" ${v("ripiantumazione").dove === "sito" ? "selected" : ""}>In un altro stallo libero censito</option></select></label>
+        <label>Stallo libero (se scelto)<select name="ripiantumazione.sito"><option value="">—</option>${stalli.map(({ x, d }) => `<option value="${x.n}" ${String(v("ripiantumazione").sito) === String(x.n) ? "selected" : ""}>n. ${num(x)} · ${esc(luogo(x))} · a ${d < 1000 ? Math.round(d) + " m" : (d / 1000).toFixed(1).replace(".", ",") + " km"}</option>`).join("")}</select></label>
+        <div class="due">${campo("ripiantumazione", "d", "number", "Diametro tronco (cm)", 'inputmode="numeric"')}${campo("ripiantumazione", "ditta", "text", "Ditta / vivaio")}</div>
+        <div class="suggerimento">Quando segni "Fatto", il nuovo albero viene aggiunto alla mappa e all'Area di lavoro con un numero di scheda nuovo.</div>`,
+    garanzia: `<div class="due"><label>Fine garanzia<input type="date" name="garanzia.fine" value="${esc(v("garanzia").fine || (v("ripiantumazione").data ? piuMesi(v("ripiantumazione").data, I.garanziaMesi) : ""))}"></label>
+      <label>Esito<select name="garanzia.esito">${[["", "In corso"], ["attecchito", "Attecchito"], ["sostituire", "Non attecchito: da sostituire"]].map(([k, t]) => `<option value="${k}" ${(v("garanzia").esito || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select></label></div>` + campo("garanzia", "note", "textarea", "Controlli e irrigazioni"),
+  };
+  const f = $("#formPratica");
+  f.innerHTML = `<h3>Pratica di abbattimento · n. ${num(a)}</h3><p class="sotto">${esc(nomeSp(a))} · ${esc(luogo(a))} · avviata il ${dataTxt(p.creata)} · <span class="pill ${statoPratica(p).col}">${esc(statoPratica(p).testo)}</span></p>
+    ${FASI.map((fz, i) => `<div class="fase ${faseOk(p, fz.k) ? "fatta" : ""}"><div class="tit"><span class="num-fase">${i + 1}</span><b>${fz.nome}</b><span style="flex:1"></span>
+      <label><input type="checkbox" name="${fz.k}.fatto" ${v(fz.k).fatto ? "checked" : ""} ${fz.k === "ripiantumazione" && p.nuovoN ? "disabled" : ""}> Fatto</label>
+      ${["perizia", "comunicazione"].includes(fz.k) ? `<label><input type="checkbox" name="${fz.k}.nonServe" ${v(fz.k).nonServe ? "checked" : ""}> Non necessaria</label>` : ""}</div>
+      <p class="desc">${fz.desc}</p>${corpo[fz.k]}</div>`).join("")}
+    <div class="piede"><button class="btn" value="albero" formnovalidate>Scheda dell'albero</button><button class="btn rosso" value="elimina" formnovalidate>Elimina pratica</button><span style="flex:1"></span><button class="btn" value="annulla" formnovalidate>Chiudi</button><button class="btn pieno" value="ok">Salva pratica</button></div>`;
+  f.querySelectorAll("[data-apri-albero]").forEach(b => b.onclick = () => { $("#dlgPratica").close("annulla"); apriAlbero(+b.dataset.apriAlbero); });
+  const dlg = $("#dlgPratica");
+  dlg.onclose = () => {
+    const r = dlg.returnValue;
+    if (r === "albero") { apriAlbero(p.n); return; }
+    if (r === "elimina") {
+      if (!confirm("Eliminare questa pratica? Le fasi registrate vanno perse; lo storico dell'albero resta. Non si può annullare.")) return;
+      delete DB.pratiche[p.id]; CLOUD.elimina("pratiche", { id: p.id }); toast("Pratica eliminata"); aggiorna(); return;
+    }
+    if (r !== "ok") return;
+    const prima = JSON.parse(JSON.stringify(p.fasi));
+    const fd = new FormData(f);
+    FASI.forEach(fz => { const x = p.fasi[fz.k] = Object.assign({}, p.fasi[fz.k] || {}); x.fatto = fd.has(fz.k + ".fatto") || (fz.k === "ripiantumazione" && !!p.nuovoN); x.nonServe = fd.has(fz.k + ".nonServe"); });
+    for (const [k, val] of fd.entries()) { const [fz, nome] = k.split("."); if (nome !== "fatto" && nome !== "nonServe") p.fasi[fz][nome] = val; }
+    FASI.forEach(fz => { if (fd.has(fz.k + ".ceppaia") === false && fz.k === "esecuzione") p.fasi.esecuzione.ceppaia = false; });
+    // fasi completate ora: data automatica e voce nello storico
+    FASI.forEach(fz => { const x = p.fasi[fz.k]; if (x.fatto && !(prima[fz.k] || {}).fatto) { if (!x.data && fz.k !== "garanzia") x.data = OGGI_S; registra({ tipo: "pratica", n: p.n, data: x.data || OGGI_S, testo: `${fz.nome} completata${fz.k === "autorizzazione" && x.atto ? " (" + x.atto + ")" : ""}${x.note ? ". " + x.note : ""}`, ditta: x.ditta || "", costo: x.costo || "" }); } });
+    // abbattimento eseguito: albero non più presente, intervento chiuso
+    if (p.fasi.esecuzione.fatto && !(prima.esecuzione || {}).fatto) {
+      DB.alberi[p.n] = Object.assign(DB.alberi[p.n] || {}, { abbattuto: true }); scriviAlbero(p.n);
+      if (p.ordine) { DB.ordini[p.ordine] = Object.assign(DB.ordini[p.ordine] || {}, { stato: "fatto", data: p.fasi.esecuzione.data, ditta: p.fasi.esecuzione.ditta || "", costo: p.fasi.esecuzione.costo || "" }); scriviOrdine(p.ordine); }
+    }
+    // nuovo albero messo a dimora
+    const rp = p.fasi.ripiantumazione;
+    if (rp.fatto && !p.nuovoN) {
+      if (!rp.specie) { rp.fatto = false; toast("Indica la specie del nuovo albero"); }
+      else {
+        const sito = rp.dove === "sito" && rp.sito ? PER_N.get(+rp.sito) : null;
+        const base = sito || a, pos = posAlbero(base), n = MAX_N + 1;
+        const sp = SPECIE.find(x => x[0].toLowerCase() === rp.specie.toLowerCase());
+        const anno = (rp.data || OGGI_S).slice(0, 4);
+        const r2 = { n, y: pos[0], x: pos[1], com: rp.specie, bot: sp ? sp[1] : "", areaNome: luogo(base), t: a.t, v: "Giovane", d: +rp.d || 0, c: 0, h: "<8", cpc: "", df: "", ni: +anno, no: `NUOVO IMPIANTO ${anno} · sostituisce n. ${num(a)} (${nomeSp(a)})`, data: rp.data || OGGI_S };
+        DB.nuoviAlberi.push(r2); aggiungiNuovo(r2); CLOUD.scrivi("nuovi_alberi", { n, dati: r2 });
+        DB.alberi[n] = { prossimo: piuMesi(rp.data || OGGI_S, 6) }; scriviAlbero(n);
+        if (sito) { DB.alberi[sito.n] = Object.assign(DB.alberi[sito.n] || {}, { abbattuto: true }); scriviAlbero(sito.n); registra({ tipo: "nota", n: sito.n, data: OGGI_S, testo: `Stallo occupato dal nuovo albero n. ${n}` }); }
+        registra({ tipo: "impianto", n, data: rp.data || OGGI_S, testo: `Messo a dimora in sostituzione dell'albero n. ${num(a)} (${nomeSp(a)})` });
+        p.nuovoN = n;
+        if (!p.fasi.garanzia.fine) p.fasi.garanzia.fine = piuMesi(rp.data || OGGI_S, I.garanziaMesi);
+      }
+    }
+    if (rp.fatto && p.fasi.garanzia && !p.fasi.garanzia.fine) p.fasi.garanzia.fine = piuMesi(rp.data || OGGI_S, I.garanziaMesi);
+    if (p.fasi.garanzia.esito === "attecchito") { p.fasi.garanzia.fatto = true; p.chiusa = true; } else p.chiusa = false;
+    salvaPratica(p); toast("Pratica salvata"); aggiorna(); if (albAperto) apriAlbero(albAperto);
+  };
+  dlg.returnValue = ""; dlg.showModal();
+}
 
 /* ---------- Modifica ed eliminazione ---------- */
 const azioniVoce = e => `<div class="azioni-voce"><button data-mod-ev="${esc(e.id)}">Modifica</button><button class="rosso" data-del-ev="${esc(e.id)}">Elimina</button></div>` +
@@ -1427,6 +1708,8 @@ function ridisegnaPresto() {
 }
 window.applicaRemoto = (tab, riga, tipo) => {
   if (!riga) return;
+  if (tab === "pratiche") { if (tipo === "DELETE") delete DB.pratiche[riga.id]; else DB.pratiche[riga.id] = riga.dati; ridisegnaPresto(); return; }
+  if (tab === "bilanci") { DB.bilanci = DB.bilanci || {}; if (tipo === "DELETE") delete DB.bilanci[riga.id]; else DB.bilanci[riga.id] = riga.dati; ridisegnaPresto(); return; }
   if (tipo === "DELETE") {
     if (tab === "eventi") DB.eventi = DB.eventi.filter(e => e.id !== riga.id);
     else if (tab === "alberi_mod") { delete DB.alberi[riga.n]; applicaCampi(riga.n); }
