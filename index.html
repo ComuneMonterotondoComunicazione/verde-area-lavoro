@@ -324,6 +324,7 @@
 <div class="velo" id="velo"></div>
 <aside class="cassetto" id="cassetto" aria-label="Scheda albero"></aside>
 
+<dialog id="dlgNota"><form method="dialog" id="formNota"></form></dialog>
 <dialog id="dlgControllo"><form method="dialog" id="formControllo"></form></dialog>
 <dialog id="dlgPratica" style="width:min(720px, calc(100% - 24px))"><form method="dialog" id="formPratica"></form></dialog>
 <dialog id="dlgVoce"><form method="dialog" id="formVoce"></form></dialog>
@@ -603,6 +604,7 @@ const TIPI_EV = {
   ordine: { nome: "Intervento programmato", col: "#d9761e", bg: "#fff1e0", ic: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20"/>' },
   impianto: { nome: "Nuovo impianto", col: "#4c9a2a", bg: "#eaf6e1", ic: '<path d="M12 22V12"/><path d="M12 12c-4 0-7-3-7-7 4 0 7 3 7 7Z"/><path d="M12 15c3.5 0 6-2.5 6-6-3.5 0-6 2.5-6 6Z"/>' },
   pratica: { nome: "Pratica di abbattimento", col: "#c8372d", bg: "#fdecea", ic: '<path d="M12 22v-6"/><path d="M8 16h8"/><path d="M12 16c-3.5 0-6-2.6-6-6 0-3 2.5-6 6-8 3.5 2 6 5 6 8 0 3.4-2.5 6-6 6Z"/>' },
+  foto: { nome: "Foto · stato attuale", col: "#6b4fa8", bg: "#efe9fa", ic: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
   nota: { nome: "Nota", col: "#5b6b63", bg: "#eceae3", ic: '<path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/>' },
 };
 const ICO = {
@@ -1115,7 +1117,7 @@ function apriAlbero(n) {
   const rit = s.prossimo && fineMese(s.prossimo) < OGGI_S;
   $("#cassetto").innerHTML = `<div class="testa"><button class="chiudi" id="chiudiCass" aria-label="Chiudi">${ICO.x}</button>
       <div class="k">Scheda albero n. ${num(a)}${s.abbattuto ? " · ABBATTUTO" : ""}</div><h3>${esc(nomeSp(a))}</h3><div class="bot">${esc(SPECIE[a.s][1])}</div>
-      <div class="azioni"><button class="btn pieno" id="cReg">Registra controllo</button><button class="btn" id="cOrd">+ Intervento</button><button class="btn" id="cNota">Aggiungi nota</button><button class="btn" id="cMappa">Sulla mappa</button></div></div>
+      <div class="azioni"><button class="btn pieno" id="cReg">Registra controllo</button><button class="btn" id="cOrd">+ Intervento</button><button class="btn" id="cFoto">Aggiungi foto</button><button class="btn" id="cNota">Aggiungi nota</button><button class="btn" id="cMappa">Sulla mappa</button></div></div>
     <div class="corpo">
       <dl class="griglia-dati" style="margin:0 0 16px">
         <div><dt>Classe CPC</dt><dd>${s.cpc ? `<span class="cpc" style="background:${CPC_COL[s.cpc] || "#999"}">${esc(s.cpc)}</span>` : "—"}</dd></div>
@@ -1128,7 +1130,11 @@ function apriAlbero(n) {
         ${a.df ? `<div class="largo"><dt>Difetti (censimento)</dt><dd style="font-weight:400">${esc(a.df)}</dd></div>` : ""}
         ${a.no ? `<div class="largo"><dt>Note (censimento)</dt><dd style="font-weight:400">${esc(a.no)}</dd></div>` : ""}
       </dl>
-      <div class="sezione-t" style="margin-top:0">Interventi</div>
+      ${(() => { const F = ev.filter(e => e.foto && e.foto.length).sort((p, q) => String(q.data).localeCompare(String(p.data)));
+        if (!F.length) return "";
+        const ids = F.flatMap(e => e.foto).slice(0, 8);
+        return `<div class="sezione-t" style="margin-top:0">Foto dell'albero</div><p style="color:var(--muschio);margin:0 0 2px;font-size:.86rem">Ultima foto del ${dataTxt(F[0].data)}${F[0].testo && F[0].tipo === "foto" ? " · " + esc(F[0].testo) : ""}. Tutte le foto sono nello storico.</p>${fotoHtml(ids)}`; })()}
+      <div class="sezione-t">Interventi</div>
       ${ordini.length ? ordini.map(o => `<div class="ordine-mini" data-ordine="${o.id}"><b>${esc(CAT[o.cat])}</b><span><span class="pill p-${o.prio}">${o.prio}</span> <span class="pill s-${o.stato}">${STATI[o.stato]}</span></span><small>${esc(o.testo)}${o.data ? " · " + dataTxt(o.data) : ""}${o.ditta ? " · " + esc(o.ditta) : ""}</small></div>`).join("") : `<p style="color:var(--muschio);margin:0 0 8px">Nessun intervento prescritto.</p>`}
       ${(() => { const pr = praticaDi(n), ab = tuttiOrdini().find(o => o.n === n && o.cat === "abbattimento" && o.stato !== "annullato");
         const sost = Object.values(DB.pratiche).find(x => x.nuovoN === n);
@@ -1151,7 +1157,8 @@ function apriAlbero(n) {
   $("#chiudiCass").onclick = chiudiAlbero;
   $("#cReg").onclick = () => apriControllo(n);
   $("#cOrd").onclick = () => apriOrdine(null, n);
-  $("#cNota").onclick = () => { const t = prompt("Nota per l'albero n. " + n + ":"); if (t) { registra({ tipo: "nota", n, data: OGGI_S, testo: t }); toast("Nota salvata"); } };
+  $("#cNota").onclick = () => apriNota(n, "nota");
+  $("#cFoto").onclick = () => apriNota(n, "foto");
   $("#cMappa").onclick = () => { chiudiAlbero(); vai("mappa", { n }); };
   $("#cassetto").querySelectorAll("[data-ordine]").forEach(b => b.onclick = () => apriOrdine(b.dataset.ordine));
   caricaFoto($("#cassetto")); collegaAzioniVoce($("#cassetto"));
@@ -1216,6 +1223,31 @@ function apriControllo(n) {
     if (v.chi && v.chi !== ioNome()) { DB.impostazioni.nomi[CLOUD.email] = v.chi; scriviImpostazioni(); }
     registra({ tipo: "controllo", n, data: v.data, testo: [v.cpc ? "Classe " + v.cpc : "", v.testo, v.prossimo ? "Prossimo controllo: " + dataTxt(v.prossimo) : "", v.abbattuto ? "Albero non più presente" : ""].filter(Boolean).join(". "), chi: v.chi, foto });
     toast("Controllo registrato");
+  };
+  dlg.returnValue = ""; dlg.showModal();
+}
+
+/* ---------- Nota o foto senza controllo ---------- */
+function apriNota(n, tipo) {
+  const a = PER_N.get(n), f = $("#formNota");
+  f.innerHTML = `<h3>${tipo === "foto" ? "Aggiungi foto" : "Aggiungi nota"}</h3><p class="sotto">Albero n. ${num(a)} · ${esc(nomeSp(a))} · ${esc(luogo(a))}</p>
+    <div class="due"><label>Tipo<select name="tipo"><option value="foto" ${tipo === "foto" ? "selected" : ""}>Foto di aggiornamento / stato attuale</option><option value="nota" ${tipo === "nota" ? "selected" : ""}>Nota</option></select></label>
+      <label>Data<input type="date" name="data" value="${OGGI_S}" max="${OGGI_S}" required></label></div>
+    <label><span id="notaEt">${tipo === "foto" ? "Didascalia (facoltativa)" : "Testo della nota"}</span><textarea name="testo" placeholder="${tipo === "foto" ? "Es. chioma dopo la potatura, fessura sul ramo principale lato strada…" : "Es. segnalato ramo secco dal custode del parco"}"></textarea></label>
+    ${campoFoto("foto")}
+    <div class="suggerimento">Le foto restano nello storico dell'albero e, se manca la rete, si caricano da sole quando torna.</div>
+    <div class="piede"><button class="btn" value="annulla" formnovalidate>Annulla</button><button class="btn pieno" value="ok">Salva</button></div>`;
+  collegaAnteprime(f, "foto");
+  f.tipo.onchange = () => { $("#notaEt").textContent = f.tipo.value === "foto" ? "Didascalia (facoltativa)" : "Testo della nota"; };
+  const dlg = $("#dlgNota");
+  dlg.onclose = async () => {
+    if (dlg.returnValue !== "ok") return;
+    const v = Object.fromEntries(new FormData(f)), testo = (v.testo || "").trim(), files = f.foto.files;
+    if (v.tipo === "foto" && !files.length) { toast("Scatta o scegli almeno una foto"); apriNota(n, "foto"); return; }
+    if (!testo && !files.length) { toast("Scrivi la nota o aggiungi una foto"); return; }
+    const foto = await salvaFoto(files);
+    registra({ tipo: v.tipo, n, data: v.data || OGGI_S, testo: testo || (v.tipo === "foto" ? "Foto dello stato attuale" : ""), foto });
+    toast(v.tipo === "foto" ? (foto.length === 1 ? "Foto salvata" : foto.length + " foto salvate") : "Nota salvata");
   };
   dlg.returnValue = ""; dlg.showModal();
 }
